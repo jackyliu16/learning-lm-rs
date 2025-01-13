@@ -17,8 +17,10 @@ fn main() {
     let tokenizer = Tokenizer::from_file(model_dir.join("tokenizer.json")).unwrap();
     let input = "Once upon a time";
     let binding = tokenizer.encode(input, true).unwrap();
+
     let input_ids = binding.get_ids();
     print!("\n{}", input);
+
     let output_ids = llama.generate(input_ids, 500, 0.8, 30, 1.);
     println!("{}", tokenizer.decode(&output_ids, true).unwrap());
 }
