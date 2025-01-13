@@ -114,7 +114,39 @@ pub fn swiglu(y: &mut Tensor<f32>, x: &Tensor<f32>) {
 // C = beta * C + alpha * A @ B^T
 // hint: You don't need to do an explicit transpose of B
 pub fn matmul_transb(c: &mut Tensor<f32>, beta: f32, a: &Tensor<f32>, b: &Tensor<f32>, alpha: f32) {
-    todo!("实现 matmul_transb，计算前做一些必要的检查会帮助你后续调试");
+    // BC need to transpose, makesure a: MxK, b: NxK, c: MxN
+    assert!(a.shape()[0] == c.shape()[0]);
+    assert!(a.shape()[1] == b.shape()[1]);
+    assert!(b.shape()[0] == c.shape()[1]);
+
+    // superpose beta to C
+    let dc = unsafe { c.data_mut() };
+    dc.iter_mut().for_each(|val| *val *= beta);
+
+    // A @ B^T
+    let m = a.shape()[0];
+    let n = b.shape()[0];
+    let k = a.shape()[1];
+    let da = a.data();
+    let db = b.data();
+    let mut cnt = 0;
+    // for the matrix which haven't transpose, each element is present in same ways.
+    for i in 0..m {
+        // for each row
+        let range_in_a = &da[i * k..(i + 1) * k];
+        for j in 0..n {
+            let range_in_b = &db[j * k..(j + 1) * k];
+            dc[cnt] += alpha
+                * range_in_a
+                    .iter()
+                    .zip(range_in_b)
+                    .map(|(a, b)| a * b)
+                    .sum::<f32>();
+            cnt += 1;
+        }
+    }
+
+    assert!(cnt == m * n);
 }
 
 // Dot product of two tensors (treated as vectors)
