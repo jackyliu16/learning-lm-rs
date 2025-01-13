@@ -70,8 +70,31 @@ pub fn masked_softmax(y: &mut Tensor<f32>) {
     }
 }
 
+/// y_i=\frac{w×x_i}{\sqrt{ \frac{1}{n} \sum_{j} x_{ij}^2 +\epsilon}}
 pub fn rms_norm(y: &mut Tensor<f32>, x: &Tensor<f32>, w: &Tensor<f32>, epsilon: f32) {
-    todo!("实现 rms_norm，计算前做一些必要的检查会帮助你后续调试")
+    // make sure the size is same
+    assert!(y.size() == x.size());
+
+    let dx = x.data();
+    let dw = w.data();
+    let mut dy = unsafe { y.data_mut() };
+
+    // for each row
+    for i in 0..x.shape()[0] {
+        let range_in_row = (i * x.shape()[1])..((i + 1) * x.shape()[1]);
+
+        let sum_sq: f32 = dx[range_in_row.clone()].iter().map(|&x| x * x).sum();
+
+        let denom = (sum_sq / x.shape()[1] as f32 + epsilon).sqrt();
+
+        dx[range_in_row.clone()]
+            .iter()
+            .zip(dw.iter())
+            .enumerate()
+            .for_each(|(j, (&x, &w))| {
+                dy[range_in_row.start + j] = (x / denom) * w;
+            });
+    }
 }
 
 // y = silu(x) * y
